@@ -51,6 +51,8 @@ class ValidateSyntaxPlugin {
     const validateFileSyntax = curryN(3, (compilation, chunks, callback) => {
       const { assets, additionalChunkAssets, errors } = compilation
 
+      const parsedAssets = new WeakSet()
+
       const files = extractMatchingFileNames({
         chunks,
         additionalChunkAssets,
@@ -61,10 +63,16 @@ class ValidateSyntaxPlugin {
 
       files.forEach((file) => {
         const asset = assets[file]
+
+        if (parsedAssets.has(asset)) {
+          return
+        }
+
         const { source, map } = extractFileSourceAndMap(asset)
 
         try {
           parseFile(source)
+          parsedAssets.add(asset)
         } catch (error) {
           errors.push(buildError({ error, file, map, requestShortener }))
         }
