@@ -1,15 +1,14 @@
 // @flow
 
-import { parse } from 'acorn';
-import { SourceMapConsumer } from 'source-map';
+import { parse } from 'acorn'
+import { SourceMapConsumer } from 'source-map'
 import {
-  __,
   T,
   is,
   isEmpty,
-  pipe,
+  compose,
   flip,
-  curry,
+  curryN,
   propOr,
   propIs,
   apply,
@@ -30,47 +29,52 @@ import {
   unless,
   always,
   constructN,
-} from 'ramda';
+} from 'ramda'
 
 import type {
   MatchPattern,
   WebpackChunk,
+  WebpackAssetFile,
+  WebpackCompiler,
   $RequestShortener,
   $SourceMapConsumer,
-} from './types';
+} from './types'
 
-const REGEX_CHARS_REGEX = /[-[\]{}()*+?.,\\^$|#\s]/g;
-const ERROR_SOURCE_INFO_REGEX = /\(([0-9]+):([0-9]+)\)$/;
+const REGEX_CHARS_REGEX = /[-[\]{}()*+?.,\\^$|#\s]/g
+const ERROR_SOURCE_INFO_REGEX = /\(([0-9]+):([0-9]+)\)$/
 
-const toRegExp = when(is(String), pipe(
-  replace(REGEX_CHARS_REGEX, '\\$&'),
+const toRegExp = when(is(String), compose(
   RegExp,
-));
+  replace(REGEX_CHARS_REGEX, '\\$&'),
+))
 
-const testMultiple = curry((patterns, val) => {
+const testMultiple = curryN(2, (patterns, val) => {
   if (!patterns || isEmpty(patterns)) {
-    return val;
+    return val
   }
 
-  return pipe(
-    unless(is(Array), Array.of),
+  return compose(
+    all(flip(test)(val)),
     map(toRegExp),
-    all(test(__, val)),
-  )(patterns);
-});
+    unless(is(Array), Array.of),
+  )(patterns)
+})
 
-const chunkFilesReducer = pipe(
-  Array.of,
-  adjust(propOr([], 'files'), 1),
+const chunkFilesReducer = compose(
   apply(concat),
-);
+  adjust(propOr([], 'files'), 1),
+  Array.of,
+)
 
 // NOTE: flip() returns a curried function
-export const parseFileSyntax = flip(parse);
+export const parseFileSyntax = flip(parse)
+
+export const hasTapableHooks = (compiler: WebpackCompiler): boolean =>
+  Boolean()
 
 type ExtractMatchingFileNamesArgs = {
   chunks: Array<WebpackChunk>,
-  additionalChunkAssets: Array<String>,
+  additionalChunkAssets: Array<WebpackAssetFile>,
   test: ?MatchPattern,
   include: ?MatchPattern,
   exclude: ?MatchPattern,
@@ -83,38 +87,38 @@ export const extractMatchingFileNames = (args: ExtractMatchingFileNamesArgs) => 
     test: testPattern,
     include: includePattern,
     exclude: excludePattern,
-  } = args;
+  } = args
 
-  return pipe(
-    reduce(chunkFilesReducer, []),
-    concat(additionalChunkAssets || []),
+  return compose(
     when(
-      always(testPattern),
-      filter(testMultiple(testPattern)),
+      always(excludePattern),
+      reject(testMultiple(excludePattern)),
     ),
     when(
       always(includePattern),
       filter(testMultiple(includePattern)),
     ),
     when(
-      always(excludePattern),
-      reject(testMultiple(excludePattern)),
+      always(testPattern),
+      filter(testMultiple(testPattern)),
     ),
-  )(chunks);
-};
+    concat(additionalChunkAssets || []),
+    reduce(chunkFilesReducer, []),
+  )(chunks)
+}
 
 export const extractFileSourceAndMap = cond([
-  [propIs(Function, 'sourceAndMap'), pipe(
-    invoker(0, 'sourceAndMap'),
+  [propIs(Function, 'sourceAndMap'), compose(
     evolve({
       map: constructN(1, SourceMapConsumer),
     }),
+    invoker(0, 'sourceAndMap'),
   )],
-  [T, pipe(
-    invoker(0, 'source'),
+  [T, compose(
     objOf('source'),
+    invoker(0, 'source'),
   )],
-]);
+])
 
 type BuildErrorArgs = {
   error: Error,
@@ -124,27 +128,27 @@ type BuildErrorArgs = {
 };
 
 export const buildError = (args: BuildErrorArgs): Error => {
-  const { error, file, map, requestShortener } = args;
+  const { error, file, map, requestShortener } = args
 
-  const baseErrorMessage = pipe(
-    replace(ERROR_SOURCE_INFO_REGEX, ''),
+  const baseErrorMessage = compose(
     concat(`${file} (contains invalid syntax)\n`),
-  )(error.message);
+    replace(ERROR_SOURCE_INFO_REGEX, ''),
+  )(error.message)
 
-  const [, errorLine, errorColumn] = ERROR_SOURCE_INFO_REGEX.exec(error.message);
-  const hasSourceInfo = errorLine && errorColumn;
+  const [, errorLine, errorColumn] = ERROR_SOURCE_INFO_REGEX.exec(error.message)
+  const hasSourceInfo = errorLine && errorColumn
 
   const original = hasSourceInfo && map && map.originalPositionFor({
     line: Number(errorLine),
     column: Number(errorColumn),
-  });
+  })
 
   if (original && original.source) {
-    const { source, line, column } = original;
-    const sourcePath = requestShortener.shorten(source);
+    const { source, line, column } = original
+    const sourcePath = requestShortener.shorten(source)
 
-    return new Error(`${baseErrorMessage} [${sourcePath} ${line}:${column}]`);
+    return new Error(`${baseErrorMessage} [${sourcePath} ${line}:${column}]`)
   }
 
-  return new Error(`${baseErrorMessage} [${errorLine}:${errorColumn}]`);
-};
+  return new Error(`${baseErrorMessage} [${errorLine}:${errorColumn}]`)
+}

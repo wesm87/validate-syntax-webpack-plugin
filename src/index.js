@@ -1,25 +1,25 @@
 // @flow
 
-/* eslint-disable require-path-exists/exists */
+/* eslint-disable import/no-unresolved */
 // $FlowIgnore
-import RequestShortener from 'webpack/lib/RequestShortener';
-/* eslint-enable require-path-exists/exists */
+import RequestShortener from 'webpack/lib/RequestShortener'
+/* eslint-enable import/no-unresolved */
 
-import { merge } from 'ramda';
+import { curryN, merge } from 'ramda'
 
 import {
   parseFileSyntax,
   extractMatchingFileNames,
   extractFileSourceAndMap,
   buildError,
-} from './utils';
+} from './utils'
 
 import type {
   WebpackCompiler,
-  ValidateSyntaxWebpackPluginOptions,
-} from './types';
+  ValidateSyntaxPluginOptions,
+} from './types'
 
-const JS_FILE_REGEX = /\.js$/i;
+const JS_FILE_REGEX = /\.js$/i
 
 const defaultOptions = {
   ecmaVersion: 5,
@@ -27,13 +27,13 @@ const defaultOptions = {
   test: JS_FILE_REGEX,
   include: null,
   exclude: null,
-};
+}
 
-class ValidateSyntaxWebpackPlugin {
-  options: ValidateSyntaxWebpackPluginOptions
+class ValidateSyntaxPlugin {
+  options: ValidateSyntaxPluginOptions
 
-  constructor(options: ValidateSyntaxWebpackPluginOptions): void {
-    this.options = merge(defaultOptions, options);
+  constructor(options: ValidateSyntaxPluginOptions): void {
+    this.options = merge(defaultOptions, options)
   }
 
   apply(compiler: WebpackCompiler): void {
@@ -43,38 +43,51 @@ class ValidateSyntaxWebpackPlugin {
       test,
       include,
       exclude,
-    } = this.options;
+    } = this.options
 
-    const parseFile = parseFileSyntax({ ecmaVersion, sourceType });
-    const requestShortener = new RequestShortener(compiler.context);
+    const parseFile = parseFileSyntax({ ecmaVersion, sourceType })
+    const requestShortener = new RequestShortener(compiler.context)
 
-    compiler.plugin('compilation', (compilation) => {
-      compilation.plugin('after-optimize-chunk-assets', (chunks) => {
-        const { assets, additionalChunkAssets } = compilation;
+    const validateFileSyntax = curryN(3, (compilation, chunks, callback) => {
+      const { assets, additionalChunkAssets, errors } = compilation
 
-        const files = extractMatchingFileNames({
-          chunks,
-          additionalChunkAssets,
-          test,
-          include,
-          exclude,
-        });
+      const files = extractMatchingFileNames({
+        chunks,
+        additionalChunkAssets,
+        test,
+        include,
+        exclude,
+      })
 
-        files.forEach((file) => {
-          const asset = assets[file];
-          const { source, map } = extractFileSourceAndMap(asset);
+      files.forEach((file) => {
+        const asset = assets[file]
+        const { source, map } = extractFileSourceAndMap(asset)
 
-          try {
-            parseFile(source);
-          } catch (error) {
-            compilation.errors.push(
-              buildError({ error, file, map, requestShortener })
-            );
-          }
-        });
-      });
-    });
+        try {
+          parseFile(source)
+        } catch (error) {
+          errors.push(buildError({ error, file, map, requestShortener }))
+        }
+      })
+
+      callback()
+    })
+
+    //
+    if (compiler.hooks) {
+      const plugin = {
+        name: 'ValidateSyntaxPlugin',
+      }
+
+      compiler.hooks.compilation.tap(plugin, (compilation) => {
+        compilation.hooks.optimizeChunkAssets.tapAsync(plugin, validateFileSyntax(compilation))
+      })
+    } else {
+      compiler.plugin('compilation', (compilation) => {
+        compilation.plugin('after-optimize-chunk-assets', validateFileSyntax(compilation))
+      })
+    }
   }
 }
 
-module.exports = ValidateSyntaxWebpackPlugin;
+module.exports = ValidateSyntaxPlugin

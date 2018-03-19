@@ -1,19 +1,24 @@
+// @flow
+/* eslint-disable no-use-before-define */
+
+type $ObjOf<V, K = string> = { [key: K]: V }
+
 type EcmaVersion =
   | 6
   | 7
   | 8
   | 2016
   | 2017
-  | 2018;
+  | 2018
 
 type SourceType =
   | 'script'
-  | 'module';
+  | 'module'
 
 export type MatchPattern =
   | string
   | RegExp
-  | Array<string | RegExp>;
+  | Array<string | RegExp>
 
 export type $SourceMapConsumer = {
   originalPositionFor: (args: { line: number, column: number }) => {
@@ -21,41 +26,58 @@ export type $SourceMapConsumer = {
     line: number,
     column: number,
   },
-};
+}
 
 export type $RequestShortener = {
   shorten: (source: string) => string,
-};
+}
 
-export type ValidateSyntaxWebpackPluginOptions = {
+export type ValidateSyntaxPluginOptions = {
   ecmaVersion: EcmaVersion,
   sourceType: SourceType,
   test?: ?MatchPattern,
   include?: ?MatchPattern,
   exclude?: ?MatchPattern,
-};
+}
 
 export type WebpackChunk = {
   files: Array<string>,
-};
+}
 
 export type WebpackAssetFile = {
   source: () => string,
   sourceAndMap?: () => { source: string, map: string },
-};
+}
 
-export type WebpackCompilationCallback = (chunks: Array<WebpackChunk>) => void;
+type WebpackHookPluginConfig = {
+  name: string,
+}
 
-export type WebpackCompilation = {
+type WebpackHookTapFn<Callback> = (WebpackHookPluginConfig, Callback) => void
+
+type WebpackHook<Callback> = {
+  tap: WebpackHookTapFn<Callback>,
+  tapAsync: WebpackHookTapFn<Callback>,
+}
+
+type WebpackCompilationCallback = (chunks: Array<WebpackChunk>, callback: Function) => void
+
+type WebpackCompilation = {
   errors: Array<Error>,
-  assets: { [key: string]: WebpackAssetFile },
+  assets: $ObjOf<WebpackAssetFile>,
   additionalChunkAssets: Array<WebpackAssetFile>,
   plugin(hook: string, callback: WebpackCompilationCallback): void,
-};
+  hooks: {
+    optimizeChunkAssets: WebpackHook<WebpackCompilationCallback>,
+  },
+}
 
-export type WebpackCompilerCallback = (compilation: WebpackCompilation) => void;
+type WebpackCompilerCallback = (compilation: WebpackCompilation) => void
 
 export type WebpackCompiler = {
   context: string,
   plugin(hook: string, callback: WebpackCompilerCallback): void,
-};
+  hooks?: {
+    compilation: WebpackHook<WebpackCompilerCallback>,
+  },
+}
