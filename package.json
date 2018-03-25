@@ -14,8 +14,8 @@
   ],
   "scripts": {
     "build": "rm -rf lib/* && babel src --out-dir lib --ignore types.js --no-comments",
-    "lint": "esw src *.js",
-    "prepublish": "in-publish && yarn build || not-in-publish",
+    "lint": "eslint src",
+    "prepublishOnly": "yarn build",
     "postversion": "git push && git push --tags"
   },
   "dependencies": {
@@ -35,7 +35,6 @@
     "eslint-plugin-import": "^2.9.0",
     "flow-bin": "^0.68.0",
     "flow-typed": "^2.4.0",
-    "in-publish": "^2.0.0",
     "webpack": "^4.1.1"
   },
   "peerDependencies": {
