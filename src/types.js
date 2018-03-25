@@ -44,7 +44,7 @@ export type WebpackChunk = {
   files: Array<string>,
 }
 
-export type WebpackAssetFile = {
+type WebpackAssetFile = {
   source: () => string,
   sourceAndMap?: () => { source: string, map: string },
 }
@@ -65,7 +65,7 @@ type WebpackCompilationCallback = (chunks: Array<WebpackChunk>, callback: Functi
 type WebpackCompilation = {
   errors: Array<Error>,
   assets: $ObjOf<WebpackAssetFile>,
-  additionalChunkAssets: Array<WebpackAssetFile>,
+  additionalChunkAssets: Array<string>,
   plugin(hook: string, callback: WebpackCompilationCallback): void,
   hooks: {
     optimizeChunkAssets: WebpackHook<WebpackCompilationCallback>,

@@ -5,7 +5,7 @@
 import RequestShortener from 'webpack/lib/RequestShortener'
 /* eslint-enable import/no-unresolved */
 
-import { curryN, merge } from 'ramda'
+import { merge } from 'ramda'
 
 import {
   parseFileSyntax,
@@ -48,51 +48,54 @@ class ValidateSyntaxPlugin {
     const parseFile = parseFileSyntax({ ecmaVersion, sourceType })
     const requestShortener = new RequestShortener(compiler.context)
 
-    const validateFileSyntax = curryN(3, (compilation, chunks, callback) => {
-      const { assets, additionalChunkAssets, errors } = compilation
+    const getFileSyntaxValidator = (compilation) => {
+      const validateFileSyntax = (chunks, callback) => {
+        const { assets, additionalChunkAssets, errors } = compilation
 
-      const parsedAssets = new WeakSet()
+        const parsedAssets = new WeakSet()
 
-      const files = extractMatchingFileNames({
-        chunks,
-        additionalChunkAssets,
-        test,
-        include,
-        exclude,
-      })
+        const files = extractMatchingFileNames({
+          chunks,
+          additionalChunkAssets,
+          test,
+          include,
+          exclude,
+        })
 
-      files.forEach((file) => {
-        const asset = assets[file]
+        files.forEach((file) => {
+          const asset = assets[file]
 
-        if (parsedAssets.has(asset)) {
-          return
-        }
+          if (parsedAssets.has(asset)) {
+            return
+          }
 
-        const { source, map } = extractFileSourceAndMap(asset)
+          const { source, map } = extractFileSourceAndMap(asset)
 
-        try {
-          parseFile(source)
-          parsedAssets.add(asset)
-        } catch (error) {
-          errors.push(buildError({ error, file, map, requestShortener }))
-        }
-      })
+          try {
+            parseFile(source)
+            parsedAssets.add(asset)
+          } catch (error) {
+            errors.push(buildError({ error, file, map, requestShortener }))
+          }
+        })
 
-      callback()
-    })
+        callback()
+      }
 
-    //
+      return validateFileSyntax
+    }
+
     if (compiler.hooks) {
       const plugin = {
         name: 'ValidateSyntaxPlugin',
       }
 
       compiler.hooks.compilation.tap(plugin, (compilation) => {
-        compilation.hooks.optimizeChunkAssets.tapAsync(plugin, validateFileSyntax(compilation))
+        compilation.hooks.optimizeChunkAssets.tapAsync(plugin, getFileSyntaxValidator(compilation))
       })
     } else {
       compiler.plugin('compilation', (compilation) => {
-        compilation.plugin('after-optimize-chunk-assets', validateFileSyntax(compilation))
+        compilation.plugin('after-optimize-chunk-assets', getFileSyntaxValidator(compilation))
       })
     }
   }

@@ -3,7 +3,6 @@
 import { parse } from 'acorn'
 import { SourceMapConsumer } from 'source-map'
 import {
-  T,
   is,
   isEmpty,
   compose,
@@ -24,9 +23,9 @@ import {
   adjust,
   evolve,
   objOf,
-  cond,
   when,
   unless,
+  ifElse,
   always,
   constructN,
 } from 'ramda'
@@ -34,8 +33,6 @@ import {
 import type {
   MatchPattern,
   WebpackChunk,
-  WebpackAssetFile,
-  WebpackCompiler,
   $RequestShortener,
   $SourceMapConsumer,
 } from './types'
@@ -69,12 +66,11 @@ const chunkFilesReducer = compose(
 // NOTE: flip() returns a curried function
 export const parseFileSyntax = flip(parse)
 
-export const hasTapableHooks = (compiler: WebpackCompiler): boolean =>
-  Boolean()
+const isTruthyThunk = (val: *) => always(Boolean(val))
 
 type ExtractMatchingFileNamesArgs = {
   chunks: Array<WebpackChunk>,
-  additionalChunkAssets: Array<WebpackAssetFile>,
+  additionalChunkAssets: Array<string>,
   test: ?MatchPattern,
   include: ?MatchPattern,
   exclude: ?MatchPattern,
@@ -91,15 +87,15 @@ export const extractMatchingFileNames = (args: ExtractMatchingFileNamesArgs) => 
 
   return compose(
     when(
-      always(excludePattern),
+      isTruthyThunk(excludePattern),
       reject(testMultiple(excludePattern)),
     ),
     when(
-      always(includePattern),
+      isTruthyThunk(includePattern),
       filter(testMultiple(includePattern)),
     ),
     when(
-      always(testPattern),
+      isTruthyThunk(testPattern),
       filter(testMultiple(testPattern)),
     ),
     concat(additionalChunkAssets || []),
@@ -107,18 +103,20 @@ export const extractMatchingFileNames = (args: ExtractMatchingFileNamesArgs) => 
   )(chunks)
 }
 
-export const extractFileSourceAndMap = cond([
-  [propIs(Function, 'sourceAndMap'), compose(
-    evolve({
-      map: constructN(1, SourceMapConsumer),
-    }),
-    invoker(0, 'sourceAndMap'),
-  )],
-  [T, compose(
-    objOf('source'),
-    invoker(0, 'source'),
-  )],
-])
+export const extractFileSourceAndMap = ifElse(
+  // $FlowIgnore flow can't tell that `propIs(Function, 'sourceAndMap')` returns a Boolean
+  propIs(Function, 'sourceAndMap'),
+  compose(
+   evolve({
+     map: constructN(1, SourceMapConsumer),
+   }),
+   invoker(0, 'sourceAndMap'),
+ ),
+ compose(
+   objOf('source'),
+   invoker(0, 'source'),
+ ),
+)
 
 type BuildErrorArgs = {
   error: Error,
