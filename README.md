@@ -46,10 +46,12 @@ module.exports = {
 
 The plugin currently takes the following options:
 
+Note: `MatchPattern` is an alias type for `RegExp | String | Array<RegExp> | Array<String>`
+
 |Name|Type|Default|Description|
 |:--:|:--:|:-----:|:----------|
 |**`ecmaVersion`**|`number`|`5`|The ECMAScript version to validate against|
 |**`sourceType`**|`string`|`"script"`|Set to `"module"` if you're compiling to ES modules instead of CommonJS|
-|**`test`**|`RegExp \| Array<RegExp>`|`/\\.js$/i`|Test to match files against|
-|**`include`**|`RegExp \| Array<RegExp>`|`null`|Files to include|
-|**`exclude`**|`RegExp \| Array<RegExp>`|`null`|Files to exclude|
+|**`test`**|`MatchPattern`|`/\\.js$/i`|Test to match files against|
+|**`include`**|`MatchPattern`|`null`|Files to include|
+|**`exclude`**|`MatchPattern`|`null`|Files to exclude|
