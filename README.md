@@ -5,13 +5,12 @@ A Webpack plugin to validate the syntax in your bundles. Uses
 
 ## Why?
 
-The motivation for writing this plugin was that we had an issue in our front-end
-React app where some ES6 code was making its way into the app bundle, which
-broke the site in Internet Explorer. Upon investigation we discovered that the
-code in question was coming from one of the third-party packages we were using
-that was written in ES6 but was not transpiled before shipping. We wanted our
-build process to throw an error if any invalid code makes it into the compiled
-bundle but we couldn't find a plugin to do that, so we created one.
+The motivation for writing this plugin was that I had an issue in a React app where some ES6
+code was making its way into the app bundle, which broke the site in Internet Explorer. Upon
+investigation I discovered that the code in question was coming from one of the third-party
+packages I was using that was written in ES6 but was not transpiled before shipping. I wanted
+my build process to throw an error if any invalid code made it into the compiled bundle but
+I couldn't find a plugin to do that, so I created one.
 
 ## Requirements
 
