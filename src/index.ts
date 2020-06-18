@@ -96,4 +96,4 @@ class ValidateSyntaxPlugin {
   }
 }
 
-export default ValidateSyntaxPlugin;
+module.exports = ValidateSyntaxPlugin;

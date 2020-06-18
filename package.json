@@ -14,7 +14,7 @@
   ],
   "scripts": {
     "check-types": "tsc",
-    "build": "rm -rf lib/* && babel src --out-dir 'lib' --extensions '.ts' --no-comments",
+    "build": "rm -rf lib/* && babel src --out-dir 'lib' --extensions '.ts' --ignore 'src/types.ts' --no-comments",
     "lint": "eslint src",
     "prepublishOnly": "yarn build",
     "postversion": "git push && git push --tags"
