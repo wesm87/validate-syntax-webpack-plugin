@@ -45,7 +45,7 @@ module.exports = {
 
 The plugin currently takes the following options:
 
-Note: `MatchPattern` is an alias type for `RegExp | String | Array<RegExp> | Array<String>`
+Note: `MatchPattern` is an alias type for `RegExp | string | RegExp[] | string[]`
 
 |Name|Type|Default|Description|
 |:--:|:--:|:-----:|:----------|
