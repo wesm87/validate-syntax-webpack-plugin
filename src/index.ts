@@ -30,7 +30,7 @@ const defaultOptions = {
 class ValidateSyntaxPlugin {
   options: ValidateSyntaxPluginOptions;
 
-  constructor(options: ValidateSyntaxPluginOptions) {
+  constructor(options: Readonly<ValidateSyntaxPluginOptions>) {
     this.options = merge<ValidateSyntaxPluginOptions, ValidateSyntaxPluginOptions>(
       defaultOptions,
       options,
@@ -43,41 +43,39 @@ class ValidateSyntaxPlugin {
     const parseFile = parseFileSyntax({ ecmaVersion, sourceType });
     const requestShortener = new RequestShortener(compiler.context);
 
-    const getFileSyntaxValidator = (compilation: WebpackCompilation) => {
+    const getFileSyntaxValidator = (compilation: WebpackCompilation) => (
+      chunks: WebpackChunk[],
+      callback: () => any,
+    ) => {
+      const parsedAssets = new WeakSet();
       const { assets, additionalChunkAssets, errors } = compilation;
 
-      const validateFileSyntax = (chunks: WebpackChunk[], callback: () => void) => {
-        const parsedAssets = new WeakSet();
+      const files = extractMatchingFileNames({
+        chunks,
+        additionalChunkAssets,
+        test,
+        include,
+        exclude,
+      });
 
-        const files = extractMatchingFileNames({
-          chunks,
-          additionalChunkAssets,
-          test,
-          include,
-          exclude,
-        });
+      files.forEach((file) => {
+        const asset = assets[file];
 
-        files.forEach((file) => {
-          const asset = assets[file];
+        if (parsedAssets.has(asset)) {
+          return;
+        }
 
-          if (parsedAssets.has(asset)) {
-            return;
-          }
+        const { source, map } = extractFileSourceAndMap(asset);
 
-          const { source, map } = extractFileSourceAndMap(asset);
+        try {
+          parseFile(source);
+          parsedAssets.add(asset);
+        } catch (error) {
+          errors.push(buildError({ error, file, map, requestShortener }));
+        }
+      });
 
-          try {
-            parseFile(source);
-            parsedAssets.add(asset);
-          } catch (error) {
-            errors.push(buildError({ error, file, map, requestShortener }));
-          }
-        });
-
-        callback();
-      };
-
-      return validateFileSyntax;
+      callback();
     };
 
     if (compiler.hooks) {
