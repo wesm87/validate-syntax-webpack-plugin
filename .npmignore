@@ -2,5 +2,6 @@
 src
 
 # Config files
-.babelrc.js
-.eslintrc.js
+babel.config.mjs
+prettier.config.js
+tsconfig.json
