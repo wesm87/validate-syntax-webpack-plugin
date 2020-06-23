@@ -15,7 +15,6 @@
   "scripts": {
     "check-types": "tsc",
     "build": "rm -rf lib/* && babel src --out-dir 'lib' --extensions '.ts' --ignore 'src/types.ts' --no-comments",
-    "lint": "eslint src",
     "prepublishOnly": "yarn build",
     "postversion": "git push && git push --tags"
   },
@@ -32,10 +31,6 @@
     "@types/acorn": "^4.0.5",
     "@types/ramda": "^0.27.6",
     "@types/webpack": "^4.41.17",
-    "babel-eslint": "^10.1.0",
-    "confusing-browser-globals": "^1.0.9",
-    "eslint": "^7.2.0",
-    "eslint-plugin-import": "^2.21.2",
     "prettier": "^2.0.5",
     "typescript": "^3.9.5",
     "webpack": "^4.43.0"
