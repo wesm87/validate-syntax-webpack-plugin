@@ -1,7 +1,0 @@
-# Source code
-src
-
-# Config files
-babel.config.mjs
-prettier.config.js
-tsconfig.json
